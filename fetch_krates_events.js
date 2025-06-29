@@ -160,6 +160,39 @@ function formatEvents(events) {
 }
 
 /**
+ * Group events by user and asset, summing amounts
+ */
+function groupEventsByUserAndAsset(events) {
+    const grouped = {};
+    
+    for (const event of events) {
+        const key = `${event.user}-${event.asset}`;
+        
+        if (grouped[key]) {
+            // Add to existing amount (convert to BigInt for precise addition)
+            const existingAmount = BigInt(grouped[key].amount);
+            const newAmount = BigInt(event.amount);
+            grouped[key].amount = (existingAmount + newAmount).toString();
+        } else {
+            // Create new entry
+            grouped[key] = {
+                user: event.user,
+                asset: event.asset,
+                amount: event.amount
+            };
+        }
+    }
+    
+    // Convert to array and sort by user, then by asset
+    return Object.values(grouped).sort((a, b) => {
+        if (a.user !== b.user) {
+            return a.user.localeCompare(b.user);
+        }
+        return a.asset.localeCompare(b.asset);
+    });
+}
+
+/**
  * Save events to CSV file
  */
 function saveEventsToFile(events, filename = 'krates_events.csv') {
@@ -179,6 +212,29 @@ function saveEventsToFile(events, filename = 'krates_events.csv') {
         console.log(`Saved ${events.length} events to ${filename}`);
     } catch (error) {
         console.error(`Error saving events to file: ${error.message}`);
+    }
+}
+
+/**
+ * Save grouped events to CSV file
+ */
+function saveGroupedEventsToFile(groupedEvents, filename = 'kraters_grouped.csv') {
+    try {
+        // Create CSV header
+        const csvHeader = 'user,asset,total_amount\n';
+        
+        // Convert grouped events to CSV rows
+        const csvRows = groupedEvents.map(event => 
+            `${event.user},${event.asset},${event.amount}`
+        ).join('\n');
+        
+        // Combine header and rows
+        const csvContent = csvHeader + csvRows;
+        
+        fs.writeFileSync(filename, csvContent);
+        console.log(`Saved ${groupedEvents.length} grouped entries to ${filename}`);
+    } catch (error) {
+        console.error(`Error saving grouped events to file: ${error.message}`);
     }
 }
 
@@ -215,22 +271,40 @@ async function main() {
         // Format events
         const formattedEvents = formatEvents(events);
         
-        // Save to file
+        // Save individual events to file
         saveEventsToFile(formattedEvents);
+        
+        // Group events by user and asset
+        const groupedEvents = groupEventsByUserAndAsset(formattedEvents);
+        
+        // Save grouped events to file
+        saveGroupedEventsToFile(groupedEvents);
         
         // Print summary
         if (formattedEvents.length > 0) {
             console.log("\nEvent Summary:");
-            console.log(`Total events: ${formattedEvents.length}`);
+            console.log(`Total individual events: ${formattedEvents.length}`);
+            console.log(`Total unique user-asset pairs: ${groupedEvents.length}`);
             
-            // Show first few events
-            console.log("\nFirst few events:");
+            // Show first few individual events
+            console.log("\nFirst few individual events:");
             for (let i = 0; i < Math.min(3, formattedEvents.length); i++) {
                 const event = formattedEvents[i];
                 console.log(`  Event ${i + 1}:`);
                 console.log(`    Asset: ${event.asset}`);
                 console.log(`    User: ${event.user}`);
                 console.log(`    Amount: ${event.amount}`);
+                console.log();
+            }
+            
+            // Show first few grouped entries
+            console.log("\nFirst few grouped entries:");
+            for (let i = 0; i < Math.min(3, groupedEvents.length); i++) {
+                const entry = groupedEvents[i];
+                console.log(`  Entry ${i + 1}:`);
+                console.log(`    User: ${entry.user}`);
+                console.log(`    Asset: ${entry.asset}`);
+                console.log(`    Total Amount: ${entry.amount}`);
                 console.log();
             }
         }
