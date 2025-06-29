@@ -36,14 +36,12 @@ async function getProvider() {
 }
 
 /**
- * Fetch all DepositProcessed events from the contract
+ * Fetch DepositProcessed events from the contract for a specific block range
  */
-async function getDepositProcessedEvents(provider, contractAddress, fromBlock = 0, toBlock = 'latest') {
+async function getDepositProcessedEventsForRange(provider, contractAddress, fromBlock, toBlock) {
     // Event signature: DepositProcessed(address,address,uint256,uint256,address)
     const eventSignature = "DepositProcessed(address,address,uint256,uint256,address)";
     const topic = ethers.id(eventSignature);
-    
-    console.log(`Searching for events with topic: ${topic}`);
     
     try {
         const logs = await provider.getLogs({
@@ -53,13 +51,60 @@ async function getDepositProcessedEvents(provider, contractAddress, fromBlock = 
             topics: [topic]
         });
         
-        console.log(`Found ${logs.length} events with topic ${topic}`);
         return logs;
         
     } catch (error) {
-        console.error(`Error fetching events: ${error.message}`);
+        console.error(`Error fetching events for blocks ${fromBlock}-${toBlock}: ${error.message}`);
         return [];
     }
+}
+
+/**
+ * Fetch all DepositProcessed events from the contract using chunked requests
+ */
+async function getDepositProcessedEvents(provider, contractAddress, fromBlock = 0, toBlock = 'latest', chunkSize = 1000) {
+    const eventSignature = "DepositProcessed(address,address,uint256,uint256,address)";
+    const topic = ethers.id(eventSignature);
+    
+    console.log(`Searching for events with topic: ${topic}`);
+    
+    // Convert toBlock to number if it's 'latest'
+    if (toBlock === 'latest') {
+        toBlock = await provider.getBlockNumber();
+    }
+    
+    const totalBlocks = toBlock - fromBlock + 1;
+    const totalChunks = Math.ceil(totalBlocks / chunkSize);
+    
+    console.log(`Total blocks to scan: ${totalBlocks}`);
+    console.log(`Will make ${totalChunks} requests with chunk size of ${chunkSize} blocks`);
+    
+    let allEvents = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+        const chunkFromBlock = fromBlock + (i * chunkSize);
+        const chunkToBlock = Math.min(chunkFromBlock + chunkSize - 1, toBlock);
+        
+        console.log(`Fetching chunk ${i + 1}/${totalChunks}: blocks ${chunkFromBlock} to ${chunkToBlock}`);
+        
+        const chunkEvents = await getDepositProcessedEventsForRange(
+            provider, 
+            contractAddress, 
+            chunkFromBlock, 
+            chunkToBlock
+        );
+        
+        allEvents = allEvents.concat(chunkEvents);
+        console.log(`  Found ${chunkEvents.length} events in this chunk (total so far: ${allEvents.length})`);
+        
+        // Add a small delay to avoid rate limiting
+        if (i < totalChunks - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+    
+    console.log(`Found ${allEvents.length} total events with topic ${topic}`);
+    return allEvents;
 }
 
 /**
