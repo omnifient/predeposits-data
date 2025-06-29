@@ -1,0 +1,21 @@
+{
+  "name": "ethereum-deposit-events-fetcher",
+  "version": "1.0.0",
+  "description": "Fetch DepositProcessed events from Ethereum mainnet contract",
+  "main": "fetch_deposit_events.js",
+  "type": "module",
+  "scripts": {
+    "start": "node fetch_deposit_events.js"
+  },
+  "dependencies": {
+    "ethers": "^6.8.0"
+  },
+  "keywords": [
+    "ethereum",
+    "events",
+    "blockchain",
+    "ethers"
+  ],
+  "author": "",
+  "license": "MIT"
+} 
