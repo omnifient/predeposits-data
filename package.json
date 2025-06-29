@@ -1,21 +1,15 @@
 {
-  "name": "ethereum-deposit-events-fetcher",
+  "name": "predeposits-data",
   "version": "1.0.0",
-  "description": "Fetch DepositProcessed events from Ethereum mainnet contract",
-  "main": "fetch_deposit_events.js",
+  "main": "fetch_krates_events.js",
   "type": "module",
   "scripts": {
-    "start": "node fetch_deposit_events.js"
+    "start": "node fetch_krates_events.js",
+    "vault": "node fetch_vault_balance.js"
   },
   "dependencies": {
     "ethers": "^6.8.0"
   },
-  "keywords": [
-    "ethereum",
-    "events",
-    "blockchain",
-    "ethers"
-  ],
   "author": "",
   "license": "MIT"
 } 
