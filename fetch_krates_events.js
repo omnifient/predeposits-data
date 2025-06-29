@@ -258,7 +258,7 @@ async function main() {
             provider, 
             CONTRACT_ADDRESS, 
             22547938,  // first block with events
-            22770565 // last block with events
+            22770577 // last block with events
         );
         
         if (events.length === 0) {
